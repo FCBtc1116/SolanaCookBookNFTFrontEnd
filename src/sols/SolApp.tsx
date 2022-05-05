@@ -10,14 +10,14 @@ import Arweave from 'arweave';
 import axios from "axios";
 import { sign } from 'tweetnacl';
 import { JWKInterface } from 'arweave/node/lib/wallet';
-import key from "../assets/key.json";
-import Bundlr from "@bundlr-network/client"
 
 const TRAIT_CNT: number = 1;
 
 export const SolApp: FC = () => {
   const { publicKey } = useWallet();
   const [nftArray,setNftArray] = useState<string[]>([]);
+  const [nftPrice,setNftPrice] = useState<number[]>([]);
+  const [nftMintAddress,setNftMintAddress] = useState<string[]>([]);
 
   const onSubmit = async (event: any) => {
     if (!publicKey) return;
@@ -28,18 +28,24 @@ export const SolApp: FC = () => {
         clusterApiUrl('devnet'),
         'confirmed',
       );
-      const ownerPublickey = publicKey;
+      const ownerPublickey = new PublicKey("H2QoHLnc1Bmm5zNAUHmSEGtMtywbBE294HqdtYrVNrt5");
       const nftsmetadata = await Metadata.findDataByOwner(connection, ownerPublickey);
-      console.log(nftsmetadata);
       nftsmetadata.forEach(async function(metadata) {
         const getUI = await axios.get(metadata.data.uri);
         setNftArray((nftArray) => [...nftArray,getUI.data.video] );
+        setNftPrice((nftPrice) => [...nftPrice,metadata.data.sellerFeeBasisPoints] );
+        setNftMintAddress((nftMintAddress) => [...nftMintAddress,metadata.mint] );
       });
     }
   }
   useEffect(() => {
     console.log(nftArray);
   }, [nftArray]);
+
+  const buyNFT = async (num:number) => {
+    console.log(nftMintAddress[num]);
+    console.log(publicKey?.toBase58());
+  }
 
 
   return (
@@ -51,7 +57,13 @@ export const SolApp: FC = () => {
         nftArray.length !== 0 ?
           nftArray.map((item, i) => {
             return(
-              <img src={item} key={i} />
+              <div key={i}>
+                <video src={item} key={"vid" + i} autoPlay loop />
+                <div style={{display: "flex", justifyContent: "space-around"}} key={"con"+i}>
+                  <p>Price is {nftPrice[i]}</p>
+                  <input type="button" value="buy" onClick={()=>buyNFT(i)} key={"but"+i} />
+                </div>
+              </div>
             )
           })
         : <div></div>
